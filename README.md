@@ -1,0 +1,1 @@
+# HomeAssistant-PulseAudio-Disable
