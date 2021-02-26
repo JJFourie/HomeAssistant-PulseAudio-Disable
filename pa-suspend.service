@@ -1,0 +1,12 @@
+[Unit]
+Description=Loads PulseAudio suspend-on-idle module in hassio_audio when started
+After=docker.service
+Before=hassio-supervisor.service
+
+[Service]
+Type=simple
+ExecStart=/home/pi/Scripts/pa-suspend.sh
+Nice=19
+
+[Install]
+WantedBy=multi-user.target
