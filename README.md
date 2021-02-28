@@ -14,9 +14,9 @@ hassio_audio image (tag): 2021.02.1
 One workaround is to load the PulseAudio **```module-suspend-on-idle```** module in the ```hassio_audio``` container. As the name suggests, this module suspends the PulseAudio processing within ```hassio_audio``` when it is idle for some time.     
     
 Below are a couple of ways to do this:    
-1) Manually from the command line using the Docker command set. This would be useful to e.g. test first if this solution actually helps your situation.
+1) Manually from the command line using the Docker command set. This would be useful to e.g. test first if this solution actually helps your situation.    
 ```docker exec -it hassio_audio pactl load-module module-suspend-on-idle```
-2) Execute the Docker command from within Home Assistant as a host CLI command, either manually (button?) or as automation e.g. when HA starts up. 
+2) Execute the Docker command from within Home Assistant as a [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/), either manually (button?) or perhaps as automation e.g. when HA starts up. 
 3) Install the [OPHoperHPO hassio add-on](https://github.com/OPHoperHPO/hassio-addons/tree/master/pulseaudio_fix) that was created by Nikita Selin. 
 4) Wrap the Docker command from (1) in a shell script that will load the module automatically whenever the hassio_audio container is (re)started.
     
@@ -81,12 +81,14 @@ The shell script can be kicked off in a number of ways. Below are instructions t
          
 ### Docker    
     
+- ```docker images```    
+    List the Docker Images.    
 - ```docker ps```    
     List all running Docker Containers.    
 - ```docker stop <container>```    
     Stop the specified container.    
 - ```docker logs -f <container>```    
-    List the logs for the specified container (-f means continuous).    
+    List the logs for the specified container (-f means continuous in realtime).    
 - ```docker exec -it <container> <command>```    
     Execute a command inside the container.    
     
@@ -138,11 +140,15 @@ lrwxrwxrwx 1 root root  38 Feb 26 12:54 /etc/systemd/system/multi-user.target.wa
     
 5) Successful manual load of module    
   **```docker exec -it hassio_audio pactl load-module module-suspend-on-idle```**    
+```
 16
+```
     
-6) Failed manual load of module (in this case the module was already loaded)    
+6) Failed manual load of module (in this case the module is already loaded, and can't be loaded a second time)    
   **```docker exec -it hassio_audio pactl load-module module-suspend-on-idle```**    
+```
 Failure: Module initialization failed
+```
     
 7) Docker "hassio_audio" logs at the time when the suspend module is loaded    
   **```docker logs -f hassio_audio```**    
@@ -160,7 +166,7 @@ D: [pulseaudio] core.c: Hmm, no streams around, trying to vacuum.
 ...
 ```
     
-8) Listing of PulseAudio modules (the suspend module is already loaded, see nr 16)    
+8) Listing of loaded PulseAudio modules (here the *```module-suspend-on-idle```* module is already loaded, see nr 16)    
   **```docker exec -it hassio_audio pactl list modules```**    
 ```
 Module #0
