@@ -29,10 +29,12 @@ Below are a couple of ways to do this:
 I chose to wrap the Docker command in a shell script, as the script can be started on bootup, run in the background and automatically do its thing when needed, like when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
     
 [pa-suspend]() is a simple shell script that does the following:    
-- It sits in a loop and listens to **Docker Events** related to the ```hassio_audio``` container.    
+- On startup the script will load the ```module-suspend-on-idle``` module if ```hassio_audio``` is already running.     
+- It then sits in a endless loop and listens to **Docker Events** related to the ```hassio_audio``` container.    
 - When the container is started, the script uses ```docker exec``` to load the ```module-suspend-on-idle``` module inside the container.    
+- The script will raise "user" events to rsyslog when the script is started, and also when the module is loaded (see /var/log/user.log).    
     
-Note that if the ```docker exec``` command is executed immediately after receiving the container ```start``` event, a *"Connection failure: Connection refused"* error is raised. To prevent this the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to prevent errors.
+Note that if the ```docker exec``` command is executed immediately after receiving the container ```start``` event, a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to prevent errors.
     
         
 ## System Daemon    
@@ -41,7 +43,7 @@ The shell script can be kicked off in a number of ways. Below are instructions t
 (See (B) below for some sample output)    
     
 1) In the host OS (Debian?), create a schell script by copying the contents or downloading the [pa-suspend.sh]() script.    
-   The script can be created in e.g. ```/usr/sbin```. The code assumes the shell script is called "pa-suspend.sh", located in ```/home/pi/Scripts```. Adjust it to match your implementation.    
+   *The code assumes the shell script is called "pa-suspend.sh", located in ```/home/pi/Scripts```. Adjust it to match your implementation.*    
 2) Ensure the shell script is executable:     
     ```chmod +x pa-suspend.sh```
 3) Create the service file, and enter the content from [pa-suspend.service]():     
