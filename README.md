@@ -41,7 +41,7 @@ Note that if the ```docker exec``` command is executed immediately after receivi
 ## System Daemon    
     
 The shell script can be kicked off in a number of ways. Below are instructions to set it up as a Linux daemon service that will be automatically started on bootup.    
-*The code assumes the shell script is called "pa-suspend.sh", located in ```/home/pi/Scripts```. Adjust the scripts and commands below to match your implementation.*     
+*The code assumes the shell script is called ```pa-suspend.sh```, located in ```/home/pi/Scripts```. Adjust the scripts and commands below to match your implementation.*     
       
 1) In the host OS (Debian?), create a shell script by copying the contents or downloading the [pa-suspend.sh](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) script.    
 2) Ensure the shell script is executable:     
@@ -164,7 +164,7 @@ Mar  5 01:08:27 RPiHost 8de681ad489c[676]: I: [pulseaudio] client.c: Freed 15 "p
 Mar  5 01:08:27 RPiHost 8de681ad489c[676]: I: [pulseaudio] protocol-native.c: Connection died.
 ```
 
-7) Entries in sysstem logs when the *```pa-suspend```* script is started.    
+7) Entries in system logs when the *```pa-suspend```* script is started.    
    On startup it will try to load the PulseAudio module, but in this case the module was already loaded, and an error was raised because it can't be loaded a second time:    
 ```
 tail -f /var/log/user.log
