@@ -32,7 +32,8 @@ I chose to wrap the Docker command in a shell script, as the script can be start
 - On startup the script will load the ```module-suspend-on-idle``` module if ```hassio_audio``` is already running.     
 - It then sits in a endless loop and listens to **Docker Events** related to the ```hassio_audio``` container.    
 - When the container is started, the script uses ```docker exec``` to load the ```module-suspend-on-idle``` module inside the container.    
-- The script will raise "user" events to rsyslog when the script is started, and also when the module is loaded (see /var/log/user.log).    
+- The script will raise "user" events to rsyslog when the script is started, and also when the module is loaded.    
+   (see /var/log/user.log)    
     
 Note that if the ```docker exec``` command is executed immediately after receiving the container ```start``` event, a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to prevent errors.    
     
@@ -40,10 +41,9 @@ Note that if the ```docker exec``` command is executed immediately after receivi
 ## System Daemon    
     
 The shell script can be kicked off in a number of ways. Below are instructions to set it up as a Linux daemon service that will be automatically started on bootup.    
-(See (B) below for some sample output)    
-    
-1) In the host OS (Debian?), create a schell script by copying the contents or downloading the [pa-suspend.sh]() script.    
-   *The code assumes the shell script is called "pa-suspend.sh", located in ```/home/pi/Scripts```. Adjust it to match your implementation.*     
+*The code assumes the shell script is called "pa-suspend.sh", located in ```/home/pi/Scripts```. Adjust the scripts and commands below to match your implementation.*     
+      
+1) In the host OS (Debian?), create a shell script by copying the contents or downloading the [pa-suspend.sh](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) script.    
 2) Ensure the shell script is executable:     
     ```chmod +x pa-suspend.sh```    
 3) Create the service file, and enter the content from [pa-suspend.service]():     
@@ -64,21 +64,22 @@ The shell script can be kicked off in a number of ways. Below are instructions t
     
 ### Linux    
     
-- *```pa-suspend```* Service:    
-      - Start the *```pa-suspend```* service:    
+- Related to the *```pa-suspend```* Service:    
+      - Start the service:    
         ```sudo systemctl start pa-suspend```    
-      - Stop the *```pa-suspend```* service:    
+      - Stop the service:    
         ```sudo systemctl stop pa-suspend```    
-      - Disable the *```pa-suspend```* service. Also drops related sym links:    
+      - Disable the service. Also drops related sym links:    
         ```sudo systemctl disable pa-suspend```    
-      - Reload the *```pa-suspend```* service, e.g. after editing or making changes:    
+      - Reload the service, e.g. after editing or making changes:    
         ```sudo systemctl daemon-reload```    
-      - Restart *```pa-suspend```* the service:    
+      - Restart the service:    
         ```sudo systemctl restart pa-suspend```    
-      - Edit an existing service. No need for reload afterwards:    
+      - Edit an existing service. No need to reload the service afterwards:    
         ```sudo systemctl edit pa-suspend --full```    
-- *```pa-suspend```* Logs:    
-      - Using journal (-f shows logs in realtime continuously):    
+	
+- Related to *```pa-suspend```* logging:    
+      - Using the journal (-f shows logs in realtime continuously):    
         ```sudo journalctl -u pa-suspend [-f]```    
       - From system logs:    
         ```tail [-f] /var/log/user.log```    
@@ -88,13 +89,13 @@ The shell script can be kicked off in a number of ways. Below are instructions t
     
 - List the Docker Images:    
     ```docker images```    
-- List all running Docker Containers:    
+- List all running Docker containers:    
     ```docker ps```    
 - Stop the specified container:    
     ```docker stop <container>```    
 - List the logs for the specified container (-f means continuous in realtime):    
     ```docker logs -f <container>```    
-- Execute a command inside the container:    
+- Execute a command inside a container:    
     ```docker exec -it <container> <command>```    
     
     
@@ -121,43 +122,57 @@ Based on my implementation, below are some commands and their output, as referen
            └─1995 /bin/bash /home/pi/Scripts/pa-suspend.sh
 ```
     
-2) Check if "pa-suspend" process is running:    
-   (There should be two processes, as Bash forks on the "while read" command)     
+2) Check if the "pa-suspend" process is running:    
+   (There should be two processes, as Bash forks on the "while read" command used in the script)     
   **```ps -ef | grep pa-suspend```**    
 ```
 root      1992     1  0 13:24 ?        00:00:00 /bin/bash /home/pi/Scripts/pa-suspend.sh
 root      1995  1992  0 13:24 ?        00:00:00 /bin/bash /home/pi/Scripts/pa-suspend.sh
 ```
     
-3) Journal logs for (successfully) running process:    
+3) Journal logs for a (successfully) running service:    
   **```sudo journalctl -u pa-suspend```**    
 ```
 -- Logs begin at Fri 2021-02-26 13:24:24 CET, end at Fri 2021-02-26 14:25:14 CET. --
 -- No entries --
 ```
     
-4) Files and sym links under /etc after successful setup:    
+4) Files and sym links created under "/etc" after successful setup:    
   **```sudo find /etc -name "*pa-suspend*" -print0 | xargs -0 ls -la```**    
 ```
 lrwxrwxrwx 1 root root  38 Feb 26 12:54 /etc/systemd/system/multi-user.target.wants/pa-suspend.service -> /etc/systemd/system/pa-suspend.service
 -rw-r--r-- 1 root root 253 Feb 26 12:44 /etc/systemd/system/pa-suspend.service
 ```
     
-5) Successful manual load of module:    
+5) Successful manual load of the PulseAudio module:    
    The returmed value increases based on the number of modules loaded (but sometimes there are gaps)     
   **```docker exec -it hassio_audio pactl load-module module-suspend-on-idle```**    
 ```
 16
 ```    
     
-6) Failed manual load of module (in this case the module is already loaded, and can't be loaded a second time):    
-   More detail on the error is logged by PulseAudio in /var/log/daemon.log.    
+6) Failed manual load of module. In this case the module was already loaded, and it can't be loaded a second time:    
   **```docker exec -it hassio_audio pactl load-module module-suspend-on-idle```**    
 ```
 Failure: Module initialization failed
-```    
+```     
+
+More detail on the error is logged by PulseAudio in ```/var/log/daemon.log```:    
+```
+Mar  5 01:08:27 RPiHost 8de681ad489c[676]: E: [pulseaudio] module.c: Module "module-suspend-on-idle" should be loaded once at most. Refusing to load.
+Mar  5 01:08:27 RPiHost 8de681ad489c[676]: I: [pulseaudio] client.c: Freed 15 "pactl"
+Mar  5 01:08:27 RPiHost 8de681ad489c[676]: I: [pulseaudio] protocol-native.c: Connection died.
+```
+
+7) Entries in sysstem logs when the *```pa-suspend```* script is started.    
+   It then tried to load the PulseAudio module, but in this case the module was already loaded, and can't be loaded a second time:    
+```
+tail -f /var/log/user.log
+Mar  5 01:11:38 RPiHost pi: pa-suspend.sh started
+Mar  5 01:11:39 RPiHost pi: pa-suspend.sh (Script Start): PulseAudio module-suspend-on-idle failed to load! (Failure: Module initialization failed)
+```
     
-7) Docker "hassio_audio" logs at the time when the suspend module is loaded:    
+8) Docker "hassio_audio" logs at the time when the *```module-suspend-on-idle```* module is loaded:    
   **```docker logs -f hassio_audio```**    
 ```
 ...
@@ -173,7 +188,7 @@ D: [pulseaudio] core.c: Hmm, no streams around, trying to vacuum.
 ...
 ```
     
-8) Listing of loaded PulseAudio modules (here the *```module-suspend-on-idle```* module is already loaded, see nr 16)    
+9) Listing of loaded PulseAudio modules (here the *```module-suspend-on-idle```* module is already loaded, see nr 16)    
   **```docker exec -it hassio_audio pactl list modules```**    
 ```
 Module #0
