@@ -27,6 +27,9 @@
 # Execution 
 #    - Shell script:      ./pa-suspend.sh
 #
+# Version 
+#    v1.1
+#
 ###############################################################################
 me=`basename "$0"`
 RETVAL=0
