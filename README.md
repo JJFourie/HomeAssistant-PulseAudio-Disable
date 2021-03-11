@@ -19,19 +19,26 @@ Below are a couple of ways to do this:
 2) Execute the Docker command from within Home Assistant as a [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/), either manually (button?) or perhaps as automation e.g. when HA starts up.    
 3) Install the [OPHoperHPO hassio add-on](https://github.com/OPHoperHPO/hassio-addons/tree/master/pulseaudio_fix) that was created by Nikita Selin.    
 4) Wrap the Docker command from (1) in a shell script that will load the module automatically whenever the hassio_audio container is (re)started.    
+   Read further to learn more about this option.    
     
     
 ***The solution discussed below assumes you are running Home Assistant in Docker in a "supervised" configuration***     
-    
+
     
 ## Shell Script    
     
-I chose to wrap the Docker PACTL load command in a shell script, as the script can be started on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
+The Docker PACTL load command is wrapped in a shell script, as the script can be started on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
     
 [**pa-suspend**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) is a simple shell script that does the following:    
-- On startup the script will load the ```module-suspend-on-idle``` module if ```hassio_audio``` is already running.     
+- When the script is started and ```hassio_audio``` is already running    
+  OR    
+  Whenever the ```hassio_audio``` container is (re)started    
+- The script will
+   1) Update the PulseAudio run parameters (```/run/s6/services/pulseaudio/run```) to change the logging from verbose ("-vvv") to error logging ("--log-level=0").
+   2) Stop PulseAudio. PulseAudio will automatically be restarted, but now with the new parameters. So *it will no longer spam the logs with debug statements*.
+   3) load the PulseAudio ```module-suspend-on-idle``` module.
 - The script will then wait in an endless loop and listen to **Docker Events** related to the ```hassio_audio``` container.    
-- When a  ```hassio_audio``` container start event is received, the script will load the ```module-suspend-on-idle``` module inside the container.    
+- When a  ```hassio_audio``` container start event is received, the script will set the run parameters, restart PulseAudio, and load the ```module-suspend-on-idle``` module inside the container.    
 - The script will raise events to rsyslog (facility = "user") when the script is started, and also when the module is loaded.    
    (see /var/log/user.log)    
     
