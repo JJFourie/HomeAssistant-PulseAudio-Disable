@@ -4,6 +4,7 @@
 #    pa-suspend    		(PulseAudio Suspend)
 #
 # Puspose:
+#    Change the PulseAudio run command, to do error level logging instead of verbose logging. Then restart PulseAudio.
 #    Load the PulseAudio "module-suspend-on-idle" module in the Home Assistant "hassio_audio" container.
 #    This is done to prevent potential audio loss on the host device, and also reduce CPU usage in certain environments, 
 #    caused by system-wide PulseAudio running in the hassio_audio container.
@@ -12,14 +13,19 @@
 #    2. the container is (re)started.
 #
 # Description: 
-#    Check if Container is already running when script starts, if so then load PulseAudio module.
-#    Continue to monitor Docker Events for Container "hassio_audio".
-#    When Container is (re)started, load the PulseAudio "module-suspend-on-idle" module inside Container.
-#    Script start- and module load events are reported to rsyslog as User events.
+#    - When
+#        a) the script starts, and the "hassio_audio" container is already running.
+#        b) the "hassio_audio" container is (re)started.
+#    - What
+#        1) update the PulseAudio run parameters in /run/s6/services/pulseaudio/run
+#           replace "-vvv" (verbose logging) with "--log-level=0" (log errors only).
+#        2) Stop PulseAudio. It will automatically be restared using the new parameters. 
+#        3) load the PulseAudio "module-suspend-on-idle" module inside "hassio_audio".
+#    Continue to monitor Docker Events for "hassio_audio" container start events.
+#    The script start- and module load events are reported to rsyslog as User events.
 #
 # Execution 
-#    - Docker cmd:        docker exec -i hassio_audio pactl load-module module-suspend-on-idle
-#    - Shell script:      ./pa-suspend
+#    - Shell script:      ./pa-suspend.sh
 #
 ###############################################################################
 me=`basename "$0"`
@@ -28,13 +34,16 @@ RETVAL=0
 event_filter="container=hassio_audio"
 event_format="Container={{.Actor.Attributes.name}} Status={{.Status}}"
 
-###############################################################################
+#------------------------------------------------------------------------------
 # Function to load PulseAudio module
-###############################################################################
+#------------------------------------------------------------------------------
 function load_module () {
+    # Change the PulseAudio run command: replace verbose logging with only logging errors. Then restart PulseAudio.
+    docker exec -it hassio_audio sed -i 's/-vvv/--log-level=0/' /run/s6/services/pulseaudio/run
+    docker exec -it hassio_audio pkill pulseaudio
+
     # Load the PulseAudio suspend module
     res=$(docker exec -i hassio_audio pactl load-module module-suspend-on-idle 2>&1)
-
     if [[ "${?}" == "0" ]]; then
         logger -p user.crit  "${1}: PulseAudio - module-suspend-on-idle loaded ok ($res)" 
     else
@@ -42,10 +51,9 @@ function load_module () {
     fi
 }
 
-
-###############################################################################
+#------------------------------------------------------------------------------
 # Function to wait forever and load module if hassio_audio is (re)started
-###############################################################################
+#------------------------------------------------------------------------------
 function event_loop () {
     while read line; do
       if [[ ${line} == *"Status=start" ]]; then
