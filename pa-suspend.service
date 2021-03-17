@@ -5,6 +5,7 @@ Before=hassio-supervisor.service
 
 [Service]
 Type=simple
+User=pi
 ExecStart=/home/pi/Scripts/pa-suspend.sh
 Nice=19
 
