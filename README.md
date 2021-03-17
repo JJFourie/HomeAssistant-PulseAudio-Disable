@@ -29,7 +29,7 @@ Below are a couple of ways to do this:
     
 The Docker PACTL load command is wrapped in a shell script, as the script can be started on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
     
-[**pa-suspend**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) is a simple shell script that does the following:    
+[**pa-suspend.sh**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) is a simple shell script that does the following:    
 - When the script is started and ```hassio_audio``` is already running    
   OR    
   Whenever the ```hassio_audio``` container is (re)started    
@@ -45,17 +45,22 @@ The Docker PACTL load command is wrapped in a shell script, as the script can be
 Note that if the ```docker exec``` command is executed immediately after receiving the container start event, the container is not yet accepting commands and a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to prevent errors.    
     
     
-## System Daemon    
+## System Service    
     
 The shell script can be kicked off in a number of ways. Below are instructions to set it up as a Linux daemon service that will be automatically started on bootup.    
-*The code assumes the shell script is called ```pa-suspend.sh```, located in ```/home/pi/Scripts```. Adjust the scripts and commands below to match your implementation.*     
+***Assumptions in the code and instructions. Adjust to match your own implementation:***    
+* The script is called ```pa-suspend.sh```.    
+* The script is located in ```/home/pi/Scripts```.    
+* The service will run in the context of user ```pi```.    
+    Set the proper "User=" setting for your environment in the [service file](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.service).    
+    This ensures that $HOME is set, to prevent the Docker error: ```"WARNING: Error loading config file: .dockercfg: $HOME is not defined"```    
       
 1) In the host OS (Debian?), create a shell script by copying the contents or downloading the [pa-suspend.sh](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) script.    
 2) Ensure the shell script is executable:     
     ```chmod +x pa-suspend.sh```    
 3) Create the service file, and enter the content from [pa-suspend.service](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.service):     
     ```sudo vi /etc/systemd/system/pa-suspend.service```    
- 4) Create the system daemon service:    
+ 4) Create the systemd service:    
     ```sudo systemctl enable pa-suspend```    
    This will also create any related symlinks     
 5) Check the status and confirm there are no errors.    
@@ -86,7 +91,7 @@ The shell script can be kicked off in a number of ways. Below are instructions t
         ```sudo systemctl edit pa-suspend --full```    
 	
 - Related to *```pa-suspend```* logging:    
-      - Using the journal (-f shows logs in realtime continuously):    
+      - Using ```journalctl``` (-f shows logs in realtime continuously):    
         ```sudo journalctl -u pa-suspend [-f]```    
       - From system logs:    
         ```tail [-f] /var/log/user.log```    
