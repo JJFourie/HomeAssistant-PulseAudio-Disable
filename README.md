@@ -35,14 +35,23 @@ The Docker PACTL load command is wrapped in a shell script, as the script can be
   Whenever the ```hassio_audio``` container is (re)started    
 - The script will
    1) Update the PulseAudio run parameters (```/run/s6/services/pulseaudio/run```) to change the logging from verbose ("-vvv") to error logging ("--log-level=0").
-   2) Stop PulseAudio. PulseAudio will automatically be restarted, but now with the new parameters. So *it will no longer spam the logs with debug statements*.
-   3) load the PulseAudio ```module-suspend-on-idle``` module.
+   2) Add a parameter to display the system time in the logs ("--log-time=true").
+   3) Stop PulseAudio. PulseAudio will automatically be restarted, but now with the new parameters. So *it will no longer spam the logs with debug statements*.
+   4) load the PulseAudio ```module-suspend-on-idle``` module.
 - The script will then wait in an endless loop and listen to **Docker Events** related to the ```hassio_audio``` container.    
 - When a  ```hassio_audio``` container start event is received, the script will set the run parameters, restart PulseAudio, and load the ```module-suspend-on-idle``` module inside the container.    
 - The script will raise events to rsyslog (facility = "user") when the script is started, and also when the module is loaded.    
    (see /var/log/user.log)    
     
 Note that if the ```docker exec``` command is executed immediately after receiving the container start event, the container is not yet accepting commands and a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to prevent errors.    
+    
+#### Config Script Functionality
+In the script are two boolean variables that you can edit to change the program behavior. 
+Both are initially true, set the proper value based on your needs:    
+Variable | | Description
+--| -- | --
+DO_CHANGE_PARAMS |  | set to true to update the PulseAudio parameters, else false to skip.
+DO_LOAD_MODULE |  | set to true to load the PulseAudio ```module-suspend-on-idle``` module, else false to skip.    
     
     
 ## System Service    
