@@ -28,7 +28,7 @@
 # Version
 #    v1.1  - Changed hassio_audio logging from verbose to error-only.
 #    v1.2  - Fixed bug in Docker exec commands, expanded error checking.
-#    v1.3  - Added boolean settings to enable/disable (1) change run params (2) load PA module
+#    v1.3  - Added boolean settings to enable/disable (1) change run params (2) load PA module, (3) set null devices as defaults (sink and input)
 #
 ###############################################################################
 me=`basename "$0"`
@@ -39,6 +39,7 @@ event_format="Container={{.Actor.Attributes.name}} Status={{.Status}}"
 
 DO_CHANGE_PARAMS=true
 DO_LOAD_MODULE=true
+DO_SET_NULL_AS_DEFAULT=true
 
 #------------------------------------------------------------------------------
 # Function to change parameters and load PulseAudio module
@@ -70,6 +71,18 @@ function change_pulseaudio () {
     else
         logger -p user.notice "${1}: Not loading PulseAudio module-suspend-on-idle."
     fi
+    if [[ $DO_SET_NULL_AS_DEFAULT = true ]]; then
+        set -x
+        logger -p user.notice  "${1}: PulseAudio setting default sink and source to null"
+        docker exec -i hassio_audio pactl unload-module module-switch-on-connect
+        docker exec -i hassio_audio pactl unload-module module-switch-on-port-available
+        docker exec -i hassio_audio pactl load-module module-null-sink
+        #docker exec -i hassio_audio pactl set-default-sink alsa_output.pci-0000_07_00.1.hdmi-stereo-extra2
+        docker exec -i hassio_audio pactl set-default-sink null
+        docker exec -i hassio_audio pactl set-default-source null.monitor
+        set +x
+    fi
+
 
 }
 

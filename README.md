@@ -52,6 +52,7 @@ Variable | | Description
 --| -- | --
 DO_CHANGE_PARAMS |  | set to true to update the PulseAudio parameters, else false to skip.
 DO_LOAD_MODULE |  | set to true to load the PulseAudio ```module-suspend-on-idle``` module, else false to skip.    
+DO_SET_NULL_AS_DEFAULT |  | set to true to load the PulseAudio ```module-null-sink``` module and set default sink and source (input) to it, else false to skip.
     
     
 ## System Service    
