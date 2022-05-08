@@ -3,6 +3,7 @@
 At the time of writing (and actually already since long before) there are issues caused by PulseAudio in the Home Assistant **hassio_audio** Docker container.    
 - In some cases PulseAudio causes **loss of audio** for users who use audio on their host devices.    
 - **PulseAudio consumes high CPU** on the host in some environments, e.g. when running Raspbian on a RPi, with a specific combination of OS version and ```hassio_audio``` release.    
+- Another reason to suspend PulseAudio is because the container in HA is configured to run in debug mode, continuously spamming the downstream logging systems with unnecessary messages. (See the ```journalctl``` command under "Useful Commands" to view the messages currently logged by your implementation).      
     
 This is typically the case for the following:    
 ```
@@ -11,15 +12,16 @@ hassio_audio OS: Alpine Linux, 3.13.1
 hassio_audio image (tag): 2021.02.1
 ```    
     
-One workaround is to load the PulseAudio **```module-suspend-on-idle```** module in the ```hassio_audio``` container. As the name suggests, this module suspends the PulseAudio processing within ```hassio_audio``` when it is idle for some time.     
+One workaround to all this is to load the PulseAudio **```module-suspend-on-idle```** module in the ```hassio_audio``` container. As the name suggests, this module suspends the PulseAudio processing within ```hassio_audio``` when it is idle for some time.     
     
 Below are a couple of ways to do this:    
-1) Manually from the command line using the Docker command set. This would be useful to e.g. test first if this solution actually helps your situation.    
+1) Manually from the command line using the Docker command set. This would be useful to e.g. test first if this solution actually helps your situation. This is not a long-term solution though, as the container is started again with the default settings (how the container was created) after each restart/reboot.    
 ```docker exec -it hassio_audio pactl load-module module-suspend-on-idle```    
-2) Execute the Docker command from within Home Assistant as a [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/), either manually (button?) or perhaps as automation e.g. when HA starts up.    
+2) Execute the Docker command mentioned above, from within Home Assistant as a [HA Shell Command](https://www.home-assistant.io/integrations/shell_command/), either manually (button?) or perhaps as automation e.g. when HA starts up.    
 3) Install the [OPHoperHPO hassio add-on](https://github.com/OPHoperHPO/hassio-addons/tree/master/pulseaudio_fix) that was created by Nikita Selin.    
-4) Wrap the Docker command from (1) in a shell script that will load the module automatically whenever the hassio_audio container is (re)started.    
-   Read further to learn more about this option.    
+4) Wrap the Docker command from (1) in a shell script that will load the module automatically whenever the hassio_audio container is (re)started.
+        
+   The solution discussed here is a crude way to implement this option.    
     
     
 ***The solution discussed below assumes you are running Home Assistant in Docker in a "supervised" configuration***     
@@ -33,7 +35,7 @@ The Docker PACTL load command is wrapped in a shell script, as the script can be
 - When the script is started and ```hassio_audio``` is already running    
   OR    
   Whenever the ```hassio_audio``` container is (re)started    
-- The script will
+- The script will do the following inside the PulseAudio container:
    1) Update the PulseAudio run parameters (```/run/s6/services/pulseaudio/run```) to change the logging from verbose ("-vvv") to error logging ("--log-level=0").
    2) Add a parameter to display the system time in the logs ("--log-time=true").
    3) Stop PulseAudio. PulseAudio will automatically be restarted, but now with the new parameters. So *it will no longer spam the logs with debug statements*.
@@ -43,11 +45,12 @@ The Docker PACTL load command is wrapped in a shell script, as the script can be
 - The script will raise events to rsyslog (facility = "user") when the script is started, and also when the module is loaded.    
    (see /var/log/user.log)    
     
-Note that if the ```docker exec``` command is executed immediately after receiving the container start event, the container is not yet accepting commands and a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to prevent errors.    
+Note that if the ```docker exec``` command is executed immediately after receiving the container start event, the container is not accepting commands yet and a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to prevent errors.    
     
 #### Config Script Functionality
-In the script are two boolean variables that you can edit to change the program behavior. 
-Both are initially true, set the proper value based on your needs:    
+The script uses two boolean variables that you can edit to change the program behavior. 
+Both are initially true, which means the logging parameters are updated *and* the module is loaded to suspend PulseAudio when idle. 
+Set the proper value based on your needs:    
 Variable | | Description
 --| -- | --
 DO_CHANGE_PARAMS |  | set to true to update the PulseAudio parameters, else false to skip.
@@ -72,7 +75,7 @@ The shell script can be kicked off in a number of ways. Below are instructions t
     ```sudo vi /etc/systemd/system/pa-suspend.service```    
  4) Create the systemd service:    
     ```sudo systemctl enable pa-suspend```    
-   This will also create any related symlinks     
+   This will also create any related symlinks.     
 5) Check the status and confirm there are no errors.    
     ```sudo systemctl status pa-suspend```
     
