@@ -46,6 +46,7 @@ DO_SET_NULL_AS_DEFAULT=true
 #------------------------------------------------------------------------------
 function change_pulseaudio () {
 
+    set -x
     if [[ $DO_CHANGE_PARAMS = true ]]; then
         # Change the PulseAudio run command: replace verbose logging with only logging errors. Then restart PulseAudio.
         res=$(docker exec -i hassio_audio sed -i 's/-vvv/--log-level=0 --log-time=true/' /run/s6/services/pulseaudio/run 2>&1)
@@ -57,6 +58,7 @@ function change_pulseaudio () {
         if [[ "${?}" -ne "0" ]]; then
             logger -p user.err "${1}: Failed to kill PulseAudio in hassio_audio ($res)"
         fi
+        sleep 2 # Wait for pulse audio to restart
     fi
 
     if [[ $DO_LOAD_MODULE = true ]]; then
@@ -72,7 +74,6 @@ function change_pulseaudio () {
         logger -p user.notice "${1}: Not loading PulseAudio module-suspend-on-idle."
     fi
     if [[ $DO_SET_NULL_AS_DEFAULT = true ]]; then
-        set -x
         logger -p user.notice  "${1}: PulseAudio setting default sink and source to null"
         docker exec -i hassio_audio pactl unload-module module-switch-on-connect
         docker exec -i hassio_audio pactl unload-module module-switch-on-port-available
