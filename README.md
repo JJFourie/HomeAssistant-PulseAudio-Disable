@@ -57,6 +57,7 @@ Variable | | Description
 --| -- | --
 DO_CHANGE_PARAMS |  | set to true to update the PulseAudio parameters, else false to skip.
 DO_LOAD_MODULE |  | set to true to load the PulseAudio ```module-suspend-on-idle``` module, else false to skip.    
+DO_SET_NULL_AS_DEFAULT |  | set to true to load the PulseAudio ```module-null-sink``` module and set default sink and source (input) to it, else false to skip.
     
 Note that if the ```docker exec``` command is executed immediately after receiving the container start event, the container is not accepting commands yet and a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will wait for 5 seconds to allow the container to settle down, before executing the command. Based on your hardware and system performance you may have to tune this delay to make things work.    
 Search for:  ```sleep 5``` and change as needed.    
