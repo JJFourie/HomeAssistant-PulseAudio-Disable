@@ -2,10 +2,7 @@
     
 At the time of writing there are issues caused by PulseAudio in the Home Assistant **```hassio_audio```** Docker container.    
 - In some cases PulseAudio causes **loss of audio** for users who use audio on their host devices.    
-- **PulseAudio consumes high CPU** on the host in some environments, e.g. when running Raspbian on a RPi, with a specific combination of OS version and ```hassio_audio``` release.    
-
-It seems that the new version "**2022.04.1**" of the PulseAudio container (```hassio_audio```) has improved in that it stopped to spam the journal and downstream logging systems with verbose information messages. v2 of this script will first confirm if the PulseAudio configuration file is still in the original location. If yes then it will set the runtime parameters as described below, and restart PulseAudio. Else the script will only load the module to suspend PulseAudio.    
-(See the ```journalctl``` command under "Useful Commands" to view the messages currently logged by your implementation).    
+- **PulseAudio consumes high CPU** on the host in some environments, e.g. when running Debian on a RPi, with a specific combination of OS version and ```hassio_audio``` release.    
     
 One workaround for the high CPU usage is to load the [PulseAudio **```module-suspend-on-idle```**](https://www.freedesktop.org/wiki/Software/PulseAudio/Documentation/User/Modules/#module-suspend-on-idle) module in the ```hassio_audio``` container. As the name suggests, this module suspends the PulseAudio processing within ```hassio_audio``` when it is idle for some time.     
     
@@ -17,10 +14,17 @@ Below are a couple of ways to suspend PA:
 4) Wrap the Docker command from (1) in a shell script that will load the module automatically whenever the hassio_audio container is (re)started.
         
    The solution discussed below is a crude way to implement this last option.    
+
     
+**NOTE!**:    
+It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAudio container (released around April '22) has improved in that it stopped to spam the journal and downstream logging systems with verbose information messages. **"V2"** of this script will first confirm if the PulseAudio configuration file is still in the original location. If yes then it will set the runtime parameters as described below, and restart PulseAudio to allow the new configuration to be used. Else it means the newer version of the container is already implemented, and the script will then continue to only load the module to suspend PulseAudio.    
+(See the ```journalctl``` command under "Useful Commands" to view the messages currently logged by your implementation).    
     
 ***This method assumes you are running Home Assistant in Docker in a "supervised" configuration***     
 (It may also work for implementations running ```hassio```, but I don't have an environment to test and verify this)    
+    
+---
+    
     
 ## Script Functionality    
     
@@ -30,9 +34,9 @@ The script addresses two separate issues, namely
     
 The PulseAudio ```pactl``` command that is used to load/unload PulseAudio modules is wrapped in a shell script. This script will be started on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
     
-[**pa-suspend.sh**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) is a simple shell script that will perform the below functionality when:    
-   a) the script is started and ```hassio_audio``` is already running.    
-   b) the script is already running, and the ```hassio_audio``` container is (re)started.    
+[**pa-suspend-v2.sh**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend-v2.sh) (V2!) is a simple shell script that will perform the below functionality when:    
+   a) the script (service) is started, and ```hassio_audio``` is already running.    
+   b) the script (service) is already running, and the ```hassio_audio``` container is (re)started.    
     
 The script will do the following (inside the PulseAudio container):
    1) Update the PulseAudio run parameters (```/run/s6/services/pulseaudio/run```) to change the logging from verbose (```"-vvv"```) to error (```"--log-level=0"```) logging.
