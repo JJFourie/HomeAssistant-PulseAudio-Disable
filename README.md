@@ -26,29 +26,32 @@ It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAud
 ---
     
     
-## Script Functionality    
+## Script     
     
+### Functionality  
 The script addresses two separate issues, namely:
-   a) Reduces CPU consumption of the ```hassio_audio``` container by suspending PulseAudio when idle.    
-   b) Reduces writing to logfiles by changing the PulseAudio log level from "verbose" to "error" (may not be an issue with latest version of the PA container).    
+   * Reduces CPU consumption of the ```hassio_audio``` container by suspending PulseAudio when idle.    
+   * Reduces writing to logfiles by changing the PulseAudio log level from "verbose" to "error" (may not be an issue with latest version of the PA container).    
     
 The PulseAudio ```pactl``` command that is used to load/unload PulseAudio modules is wrapped in a shell script. This script will be started on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
+  
     
 [**pa-suspend-v2.sh**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend-v2.sh) (V2!) is a simple shell script that will perform the below functionality when:     
-   a) the script (service) is started, and ```hassio_audio``` is already running.    
-   b) the script (service) is already running, and the ```hassio_audio``` container is (re)started.    
+   * the script (service) is started, and ```hassio_audio``` is already running.    
+   * the script (service) is already running, and the ```hassio_audio``` container is (re)started.    
     
+##### Actions  
 The script will do the following (inside the PulseAudio container):
    1) Update the PulseAudio run parameters (```/run/s6/services/pulseaudio/run```) to change the logging from verbose (```"-vvv"```) to error (```"--log-level=0"```) logging.
    2) Add a parameter to display the system time in the logs (```"--log-time=true"```).
    3) Stop PulseAudio. PulseAudio will automatically be restarted, but now using the new parameters. So *it will no longer spam the logs with debug statements*.
    4) Load the PulseAudio ```module-suspend-on-idle``` module.
-- The script will then wait in an endless loop and listen to **Docker Events** related to the ```hassio_audio``` container.    
-- When a  ```hassio_audio``` container start event is received the script will repeat the actions listed above, i.e. set the run parameters, restart PulseAudio, and load the ```module-suspend-on-idle``` module inside the PulseAudio container.    
-- The script will raise events to rsyslog (facility = "user") when the script is started, and also when the module is (re)loaded.    
+      - The script will then wait in an endless loop and listen to **Docker Events** related to the ```hassio_audio``` container.    
+      - When a  ```hassio_audio``` container start event is received the script will repeat the actions listed above, i.e. set the run parameters, restart PulseAudio, and load the ```module-suspend-on-idle``` module inside the PulseAudio container.    
+      - The script will raise events to rsyslog (facility = "user") when the script is started, and also when the module is (re)loaded.    
    (see /var/log/user.log)    
     
-#### Configuration
+##### Configuration
 The script uses two boolean variables that can be edited to change the program behavior. 
 Both are initially true, which means the logging parameters are updated *and* the module is loaded to suspend PulseAudio when idle. 
 Set the proper value based on your needs:    
