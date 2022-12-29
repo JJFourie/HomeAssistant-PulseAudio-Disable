@@ -16,7 +16,7 @@ Below are a couple of ways to suspend PA:
    The solution discussed below is a crude way to implement this last option.    
 
     
-**NOTE!**:    
+**NOTE!**    
 It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAudio container (released around April '22) has improved in that it stopped to spam the journal and downstream logging systems with verbose information messages. **"V2"** of this script will first confirm if the PulseAudio configuration file is still in the original location. If yes then it will set the runtime parameters as described below, and restart PulseAudio to allow the new configuration to be used. Else it means the newer version of the container is already implemented, and the script will then continue to only load the module to suspend PulseAudio.    
 (See the ```journalctl``` command under "Useful Commands" to view the messages currently logged by your implementation).    
     
@@ -28,13 +28,13 @@ It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAud
     
 ## Script Functionality    
     
-The script addresses two separate issues, namely     
+The script addresses two separate issues, namely:
    a) Reduces CPU consumption of the ```hassio_audio``` container by suspending PulseAudio when idle.    
    b) Reduces writing to logfiles by changing the PulseAudio log level from "verbose" to "error" (may not be an issue with latest version of the PA container).    
     
 The PulseAudio ```pactl``` command that is used to load/unload PulseAudio modules is wrapped in a shell script. This script will be started on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
     
-[**pa-suspend-v2.sh**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend-v2.sh) (V2!) is a simple shell script that will perform the below functionality when:    
+[**pa-suspend-v2.sh**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend-v2.sh) (V2!) is a simple shell script that will perform the below functionality when:     
    a) the script (service) is started, and ```hassio_audio``` is already running.    
    b) the script (service) is already running, and the ```hassio_audio``` container is (re)started.    
     
@@ -64,14 +64,14 @@ Note that if the ```docker exec``` command is executed immediately after receivi
     
 The shell script can be kicked off in a number of ways. Below are instructions to set it up as a Linux daemon service that will be automatically started on bootup.    
 ***Assumptions:***    
-* The script is called ```pa-suspend.sh```.    
+* Your script script will be called ```pa-suspend.sh```.    
 * The script is located in ```/home/pi/Scripts```.    
 * The service will run in the context of user ```pi```.    
     Set the proper "User=" setting for your environment in the [service file](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.service).    
     This ensures that $HOME is set, to prevent the Docker error: ```"WARNING: Error loading config file: .dockercfg: $HOME is not defined"```    
 
 ***Instructions: (adjust to match your own implementation)***    
-1) In the host OS (Debian?), create a shell script by copying the contents from or downloading the [pa-suspend.sh](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.sh) script.    
+1) In the host OS (Debian?), create a shell script ```pa-suspend.sh``` by copying the contents from or downloading the [pa-suspend-v2.sh](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend-v2.sh) script.    
     ```sudo vi /home/pi/Scripts/pa-suspend.sh```    
 2) Ensure the shell script is executable:     
     ```chmod +x /home/pi/Scripts/pa-suspend.sh```    
