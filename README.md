@@ -17,7 +17,8 @@ Below are a couple of ways to suspend PA:
 
     
 **NOTE!**    
-It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAudio container (released around April '22) has improved in that it stopped to spam the journal and downstream logging systems with verbose information messages. **"V2"** of this script will first confirm if the PulseAudio configuration file is still in the original location. If yes then it will set the runtime parameters as described below, and restart PulseAudio to allow the new configuration to be used. Else it means the newer version of the container is already implemented, and the script will then continue to only load the module to suspend PulseAudio.    
+It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAudio container (released around April '22) has improved in that it stopped to spam the journal and downstream log systems with verbose information messages. Another change is that the location of the `"run"` PulseAudio config file inside the container changed.  
+**"V2"** of the script will first confirm if the PulseAudio configuration file is still in the original location. If yes then it will set the runtime parameters as described below, and restart PulseAudio to allow the new configuration to be used. Else it means the newer version of the container is already implemented, and the script will then continue to only load the module to suspend PulseAudio.    
 (See the ```journalctl``` command under "Useful Commands" to view the messages currently logged by your implementation).    
     
 ***This method assumes you are running Home Assistant in Docker in a "supervised" configuration***     
@@ -31,9 +32,9 @@ It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAud
 ### Functionality  
 The script addresses two separate issues, namely:
    * Reduces CPU consumption of the ```hassio_audio``` container by suspending PulseAudio when idle.    
-   * Reduces writing to logfiles by changing the PulseAudio log level from "verbose" to "error" (may not be an issue with latest version of the PA container).    
+   * Reduces writing to logfiles by changing the PulseAudio log level from "verbose" to "error" (may not be an issue with the newer version of the PA container).    
     
-The PulseAudio ```pactl``` command that is used to load/unload PulseAudio modules is wrapped in a shell script. This script will be started on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
+The shell script is a wrapper around the PulseAudio ```pactl``` command that is used to load/unload PulseAudio modules. The script will be started as service on bootup, run in the background and automatically do its thing when needed, like when Home Assistant is restarted from within the UI, or when a new version of ```hassio_audio``` is released and the HA Supervisor (automatically) installs and reloads the container.     
   
     
 [**pa-suspend-v2.sh**](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend-v2.sh) (V2!) is a simple shell script that will perform the below functionality when:     
@@ -46,10 +47,10 @@ The script will do the following (inside the PulseAudio container):
    2) Add a parameter to display the system time in the logs (```"--log-time=true"```).
    3) Stop PulseAudio. PulseAudio will automatically be restarted, but now using the new parameters. So *it will no longer spam the logs with debug statements*.
    4) Load the PulseAudio ```module-suspend-on-idle``` module.
-      - The script will then wait in an endless loop and listen to **Docker Events** related to the ```hassio_audio``` container.    
+   5) The script will then wait in an endless loop and listen to **Docker Events** related to the ```hassio_audio``` container.    
       - When a  ```hassio_audio``` container start event is received the script will repeat the actions listed above, i.e. set the run parameters, restart PulseAudio, and load the ```module-suspend-on-idle``` module inside the PulseAudio container.    
       - The script will raise events to rsyslog (facility = "user") when the script is started, and also when the module is (re)loaded.    
-   (see /var/log/user.log)    
+   (see `/var/log/user.log`)    
     
 ##### Configuration
 The script uses two boolean variables that can be edited to change the program behavior. 
@@ -60,7 +61,7 @@ Variable | | Description
 ```DO_CHANGE_PARAMS``` |  | set to true to update the PulseAudio runtime parameters, false to skip.
 ```DO_LOAD_MODULE``` |  | set to true to load the PulseAudio ```module-suspend-on-idle``` module, false to skip.    
     
-Note that if the ```docker exec``` command is executed immediately after receiving the container start event, the container is not accepting commands yet and a *"Connection failure: Connection refused"* error is raised. To prevent this error the script will try a couple of times (with an increased timeout between retries) to update the container, to allow the container to settle down. Based on your hardware and system performance you may have to increase this retry mechanism to make things work.     
+Note that if the ```docker exec``` command is executed immediately after receiving the container start event, the container is not accepting commands yet and a *"Connection failure: Connection refused"* error is raised. To work around this error the script will try a couple of times to update the container, with an increasing timeout between retries to allow the container to settle down. Based on your hardware and system performance you may have to increase this retry mechanism to make things work.     
     
     
 ## Implementation    
@@ -73,7 +74,7 @@ The shell script can be kicked off in a number of ways. Below are instructions t
     Set the proper "User=" setting for your environment in the [service file](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend.service).    
     This ensures that $HOME is set, to prevent the Docker error: ```"WARNING: Error loading config file: .dockercfg: $HOME is not defined"```    
 
-***Instructions: (adjust to match your own implementation)***    
+***Instructions: (adjust where needed to match your own implementation)***    
 1) In the host OS (Debian?), create a shell script ```pa-suspend.sh``` by copying the contents from or downloading the [pa-suspend-v2.sh](https://github.com/JJFourie/HomeAssistant-PulseAudio-Disable/blob/main/pa-suspend-v2.sh) script.    
     ```sudo vi /home/pi/Scripts/pa-suspend.sh```    
 2) Ensure the shell script is executable:     
