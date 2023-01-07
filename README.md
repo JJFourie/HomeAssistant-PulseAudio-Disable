@@ -15,17 +15,24 @@ Below are a couple of ways to suspend PA:
         
    The solution discussed below is a crude way to implement this last option.    
 
-    
+ <br>     
+ 
 **NOTE!**    
-It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAudio container (released around April '22) has improved in that it stopped to spam the journal and downstream log systems with verbose information messages. Another change is that the location of the `"run"` PulseAudio config file inside the container changed.  
+It seems that the new version "**2022.04.1**" of the ```hassio_audio``` PulseAudio container (released around April '22) has improved in that it stopped to spam the journal and downstream log systems with verbose information messages.    
+
+Another change is that the location of the `"run"` PulseAudio config file inside the container changed.    
+
 **"V2"** of the script will first confirm if the PulseAudio configuration file is still in the original location. If yes then it will set the runtime parameters as described below, and restart PulseAudio to allow the new configuration to be used. Else it means the newer version of the container is already implemented, and the script will then continue to only load the module to suspend PulseAudio.    
 (See the ```journalctl``` command under "Useful Commands" to view the messages currently logged by your implementation).    
     
+ <br>     
+
 ***This method assumes you are running Home Assistant in Docker in a "supervised" configuration***     
 (It may also work for implementations running ```hassio```, but I don't have an environment to test and verify this)    
     
----
-    
+ <br>     
+ 
+ ---
     
 ## Script     
     
