@@ -47,7 +47,7 @@ function change_pulseaudio () {
 
     if [[ $DO_CHANGE_PARAMS = true ]]; then
         # Change the PulseAudio run command: replace verbose logging with only logging errors. Then restart PulseAudio.
-        res=$(docker exec -i hassio_audio sed -i 's/-vvv/--log-level=0 --log-time=true/' /run/s6/services/pulseaudio/run 2>&1)
+        res=$(docker exec -i hassio_audio sed -i 's/-vvv/--log-level=0 --log-time=true/' /run/s6/legacy-services/pulseaudio/run 2>&1)
         if [[ "${?}" -ne "0" ]]; then
             logger -p user.err "${1}: Failed to change PA parameters in hassio_audio ($res)"
         fi
